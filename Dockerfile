@@ -1,11 +1,19 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
+# Set working directory
 WORKDIR /app
 
+# Copy requirements first for better caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
 
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy all files
 COPY . .
 
-CMD ["python3", "bot.py"]
+# Expose port for health check
+EXPOSE 8080
+
+# Start the bot
+CMD ["python", "bot.py"]
