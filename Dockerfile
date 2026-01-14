@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+# Set environment variable for unbuffered Python output
+ENV PYTHONUNBUFFERED=1
+
 # Set working directory
 WORKDIR /app
 
@@ -15,5 +18,5 @@ COPY . .
 # Expose port for health check
 EXPOSE 8080
 
-# Start the bot
-CMD ["python", "bot.py"]
+# Start the bot with unbuffered output
+CMD ["python", "-u", "bot.py"]
