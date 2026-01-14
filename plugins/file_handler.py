@@ -1,7 +1,6 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from info import ADMINS, BIN_CHANNEL, LOG_CHANNEL
-from database.files_db import files_db
 
 @Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
 async def handle_files(client, message):
@@ -16,7 +15,7 @@ async def handle_files(client, message):
         bot_username = (await client.get_me()).username
         link = f"https://t.me/{bot_username}?start=file_{file_id}"
         
-        # Save to database
+        # Get file info
         file_name = ""
         if message.document:
             file_name = message.document.file_name
@@ -25,25 +24,30 @@ async def handle_files(client, message):
         elif message.audio:
             file_name = message.audio.file_name or "audio.mp3"
         
-        await files_db.add_file(file_id, user_id, file_name)
-        
         # Send link to user
         buttons = [[
             InlineKeyboardButton("🔗 Open Link", url=link)
         ]]
         await message.reply_text(
-            f"**File Uploaded Successfully!**\n\n"
+            f"**✅ File Uploaded Successfully!**\n\n"
             f"📄 File: `{file_name}`\n"
             f"🔗 Link: `{link}`\n\n"
             f"Share this link with anyone to give them access to the file.",
             reply_markup=InlineKeyboardMarkup(buttons)
         )
         
-        # Log to channel
+        # Log to channel (if configured)
         if LOG_CHANNEL:
-            await client.send_message(
-                LOG_CHANNEL,
-                f"New File Upload\nUser: {message.from_user.mention}\nFile: {file_name}\nID: {file_id}"
-            )
+            try:
+                await client.send_message(
+                    LOG_CHANNEL,
+                    f"📤 New File Upload\n\n"
+                    f"User: {message.from_user.mention}\n"
+                    f"File: {file_name}\n"
+                    f"File ID: {file_id}"
+                )
+            except:
+                pass
+                
     except Exception as e:
-        await message.reply_text(f"Error uploading file: {str(e)}")
+        await message.reply_text(f"❌ Error uploading file: {str(e)}")

@@ -1,15 +1,12 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from database.users_db import db
 from info import ADMINS, BIN_CHANNEL, PROTECT_CONTENT, FSUB, FSUB_CHANNEL, LOG_CHANNEL
-from utils import get_size
-from plugins.batch_handler import send_batch_files
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start(client, message):
     user_id = message.from_user.id
     
-    # Force Subscribe Check
+    # Force Subscribe Check (if enabled)
     if FSUB and FSUB_CHANNEL:
         try:
             member = await client.get_chat_member(FSUB_CHANNEL, user_id)
@@ -17,14 +14,7 @@ async def start(client, message):
                 await message.reply_text("⚠️ Please join the channel first to use this bot.")
                 return
         except:
-            await message.reply_text("⚠️ Please join the channel first to use this bot.")
-            return
-    
-    # Add user to database
-    if not await db.is_user_exist(user_id):
-        await db.add_user(user_id, message.from_user.first_name)
-        if LOG_CHANNEL:
-            await client.send_message(LOG_CHANNEL, f"New User: {message.from_user.mention} - {user_id}")
+            pass
     
     # Handle deep links
     if len(message.command) > 1:
@@ -39,14 +29,13 @@ async def start(client, message):
                     chat_id=user_id,
                     protect_content=PROTECT_CONTENT
                 )
-            except:
-                await message.reply_text("❌ File not found or expired.")
+            except Exception as e:
+                await message.reply_text(f"❌ File not found or expired.\n\nError: {str(e)}")
             return
         
-        # Batch link
+        # Batch link (will add later)
         elif data.startswith("batch_"):
-            batch_id = data.split("_")[1]
-            await send_batch_files(client, user_id, batch_id)
+            await message.reply_text("📦 Batch feature coming soon!")
             return
     
     # Default start message
@@ -62,15 +51,12 @@ async def start(client, message):
         help_text += (
             "\n**Admin Commands:**\n"
             "• /stats - Get bot statistics\n"
-            "• /batch - Create batch (multiple files in one link)\n"
-            "• /done - Finish batch creation\n"
-            "• /cancel - Cancel batch\n"
         )
     
     await message.reply_text(help_text)
 
 @Client.on_message(filters.command("help") & filters.private)
-async def help(client, message):
+async def help_command(client, message):
     user_id = message.from_user.id
     
     help_text = (
@@ -79,24 +65,18 @@ async def help(client, message):
         "1. Send me any file\n"
         "2. Get a shareable link\n"
         "3. Share with anyone!\n\n"
+        "**Features:**\n"
+        "• Permanent file storage\n"
+        "• Fast file delivery\n"
+        "• Easy sharing\n"
     )
-    
-    if user_id in ADMINS:
-        help_text += (
-            "**For Batch (Multiple Files):**\n"
-            "1. Send /batch command\n"
-            "2. Send all files one by one\n"
-            "3. Send /done when finished\n"
-            "4. Get ONE link for ALL files!\n\n"
-            "**Example Use Cases:**\n"
-            "• Study materials (all PDFs in one link)\n"
-            "• Course videos (all lectures together)\n"
-            "• Notes collection (organized chapters)\n"
-        )
     
     await message.reply_text(help_text)
 
 @Client.on_message(filters.command("stats") & filters.private & filters.user(ADMINS))
 async def stats(client, message):
-    total_users = await db.total_users_count()
-    await message.reply_text(f"**📊 Bot Statistics**\n\nTotal Users: {total_users}")
+    await message.reply_text(
+        "**📊 Bot Statistics**\n\n"
+        "Bot is running successfully!\n"
+        "Database stats will be added soon."
+    )
