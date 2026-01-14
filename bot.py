@@ -1,7 +1,8 @@
-import asyncio
 import sys
+import asyncio
+from threading import Thread
 from aiohttp import web
-from pyrogram import Client
+from pyrogram import Client, idle
 from info import API_ID, API_HASH, BOT_TOKEN
 import os
 
@@ -19,6 +20,7 @@ if not BOT_TOKEN:
     sys.exit(1)
 
 print(f"Starting bot with API_ID: {API_ID}")
+print(f"Bot Token: {BOT_TOKEN[:20]}...")
 
 class Bot(Client):
     def __init__(self):
@@ -34,18 +36,20 @@ class Bot(Client):
     async def start(self):
         await super().start()
         me = await self.get_me()
-        print(f"Bot Started: @{me.username}")
+        print(f"✅ Bot Started Successfully!")
+        print(f"Bot Username: @{me.username}")
+        print(f"Bot Name: {me.first_name}")
         print(f"Bot ID: {me.id}")
 
     async def stop(self, *args):
         await super().stop()
         print("Bot Stopped!")
 
-# Health check web server for Render
+# Health check web server
 async def health_check(request):
-    return web.Response(text="Bot is running!")
+    return web.Response(text="Bot is running! ✅")
 
-async def start_web_server():
+async def start_health_server():
     app = web.Application()
     app.router.add_get('/', health_check)
     app.router.add_get('/health', health_check)
@@ -55,24 +59,31 @@ async def start_web_server():
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    print(f"Health check server started on port {port}")
+    print(f"✅ Health check server started on port {port}")
+    print(f"URL: http://0.0.0.0:{port}")
 
-async def main():
-    # Start health check server
-    await start_web_server()
-    
-    # Start bot
-    bot = Bot()
-    await bot.start()
-    
-    # Keep running
-    await asyncio.Event().wait()
+def run_health_server():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(start_health_server())
+    loop.run_forever()
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        # Start health server in separate thread
+        print("Starting health check server...")
+        health_thread = Thread(target=run_health_server, daemon=True)
+        health_thread.start()
+        
+        # Start bot
+        print("Starting Telegram bot...")
+        bot = Bot()
+        bot.run()
+        
     except KeyboardInterrupt:
         print("Bot stopped by user")
     except Exception as e:
         print(f"FATAL ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
